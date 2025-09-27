@@ -4,7 +4,7 @@ void setup() {
 }
 This diff contains a change in line endings from 'LF' to 'CRLF'.
 
-collaborator 1 V4 code for arduino 2025
+collaborator 2 V4 code for arduino 2025
 
 void loop() {
   // put your main code here, to run repeatedly:
