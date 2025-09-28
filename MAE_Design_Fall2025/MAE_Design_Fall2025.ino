@@ -38,6 +38,7 @@ Steps to set up
           Click Commit to [branch name].
     7. Sync your work
           Press Push origin (top bar) to upload your branch changes to GitHub online.
+          Press Create Pull requests 
     8. Review and merge
           On the GitHub website, open a Pull Request for your branch.
           Teammates review the code.
