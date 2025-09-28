@@ -11,6 +11,9 @@ Next step is to find out branchs?
 
           pull request are for others to review/ see what changes you made to the code before adding it to the main branch
 
+
+Conflict resolution?
+
 Steps to set up
     1. download github desktop and arduino ide
     2. open github website and then click code (shoulde be a green button around the mid top right ish area)
