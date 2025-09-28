@@ -12,10 +12,10 @@ Next step is to find out branchs?
           pull request are for others to review/ see what changes you made to the code before adding it to the main branch
 
 
-Conflict resolution?
+Conflict resolution? check
 
 Steps to set up
-    1. download github desktop and arduino ide
+    1.  idk download github desktop and arduino ide
     2. open github website and then click code (shoulde be a green button around the mid top right ish area)
     3. click open with get hub dekstop (this clones the code from website to the app)
           * should take a little bit to load
