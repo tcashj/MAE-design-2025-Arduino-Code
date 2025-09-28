@@ -8,6 +8,7 @@ Collaborators can view? check
 arduino to github? Check
 
 Next step is to find out branchs?
+
           pull request are for others to review/ see what changes you made to the code before adding it to the main branch
 
 Steps to set up
@@ -21,6 +22,7 @@ Steps to set up
     6. then we will edit a specific branch of code then when we are done we save the code, then go back to githut desktop and commit it 
           * branches are named gizmo, wheels, ect
     7. after the coder commits their new code the owner or someone will look at the code and if it looks ok then they can press 
+
   
 void loop() {
   // put your main code here, to run repeatedly:
