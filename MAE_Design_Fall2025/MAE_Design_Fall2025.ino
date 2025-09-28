@@ -10,6 +10,9 @@ arduino to github? Check
 The next step is to find out the branches.
           Pull requests are for others to review/see what changes you made to the code before adding it to the main branch
 
+
+Conflict resolution?
+
 Steps to set up
     1. Download the tools
           Install GitHub Desktop.
