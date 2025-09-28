@@ -23,9 +23,8 @@ Steps to set up
           It will take a little bit, but if it doesn’t open automatically, launch it yourself.
           Choose “View files in your repository” to quickly open the folder where your Arduino project lives.
     4. Open the project in Arduino IDE
-          Find the .ino file inside the cloned repo folder.
-          Open it with Arduino IDE.
-          Make sure you’re working in this repo folder (so GitHub can track changes).
+          Double-click to open the file.
+              Make sure you’re working in this repo folder (so GitHub can track changes).
     5. Work on a branch
           In GitHub Desktop, make or switch to a branch (e.g., gizmo, wheels, sensors).
           Code and save changes in Arduino IDE.
