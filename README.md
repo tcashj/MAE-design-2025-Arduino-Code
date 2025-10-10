@@ -5,6 +5,7 @@ Steps to set up
     1. Download the tools
           Install GitHub Desktop.
           Install Arduino IDE.
+          
     2. Get the repository
           Go to our project on the GitHub website.
           Click the green Code button (top-right area).
