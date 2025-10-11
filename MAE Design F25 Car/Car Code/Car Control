@@ -1,79 +1,121 @@
-#include <SPI.h>
-#include "RF24.h"
+#include "Freenove_4WD_Car_for_Arduino.h"
+#include "RF24_Remote.h"
 
-RF24 radio(9, 10);   // CE, CSN pins for NRF24L01
-const byte addresses[6] = "TM013";
-const int RF24channel = 80;
+#include <Servo.h>
+#include <Adafruit_MPU6050.h>
+#include <Adafruit_Sensor.h>
+#include <Wire.h>
 
-// incoming data array (must match transmitter)
-int dataRead[8];
+Servo GizmoServo;
+Adafruit_MPU6050 mpu;
 
-// Motor driver pins
-const int ENA = 5;  // Left motor speed (PWM)
-const int IN1 = 2;  // Left motor forward
-const int IN2 = 3;  // Left motor backward
-const int ENB = 6;  // Right motor speed (PWM)
-const int IN3 = 4;  // Right motor forward
-const int IN4 = 7;  // Right motor backward
+#define GIZMO_SERVO_PIN 3
+#define AUTO_BUTTON_PIN 4
+#define BLUE_LED_PIN 12
+#define RED_LED_PIN 13
+
+bool autoModeActive = false;
+unsigned long autoStartTime = 0;
+const unsigned long autoDuration = 10000; // 10 seconds
+
+u32 lastNrfUpdateTime = 0;
+#define NRF_UPDATE_TIMEOUT 1000
+
+// -------------------------------------------------------------------
 
 void setup() {
-  Serial.begin(9600);
-  radio.begin();
-  radio.setPALevel(RF24_PA_MAX);
-  radio.setDataRate(RF24_1MBPS);
-  radio.setRetries(10, 15);
-  radio.openWritingPipe(addresses);
-  radio.openReadingPipe(1, addresses);
-  radio.setChannel(RF24channel);
-  radio.startListening();  // receiver mode
+  pinsSetup();
 
-  // setup motor pins
-  pinMode(ENA, OUTPUT);
-  pinMode(ENB, OUTPUT);
-  pinMode(IN1, OUTPUT);
-  pinMode(IN2, OUTPUT);
-  pinMode(IN3, OUTPUT);
-  pinMode(IN4, OUTPUT);
+  if (!nrf24L01Setup()) {
+    alarm(3, 2);  // 3 short, 2 long beeps = NRF failure
+  }
 
-  Serial.println("Receiver ready...");
+  alarm(2, 1);  // Normal startup indication
+
+  // --- Gizmo Servo ---
+  GizmoServo.attach(GIZMO_SERVO_PIN);
+  GizmoServo.write(90);
+
+  // --- Auto Button and LEDs ---
+  pinMode(AUTO_BUTTON_PIN, INPUT_PULLUP);
+  pinMode(BLUE_LED_PIN, OUTPUT);
+  pinMode(RED_LED_PIN, OUTPUT);
+
+  // --- MPU6050 Setup ---
+  Wire.begin();
+  if (!mpu.begin()) {
+    Serial.begin(115200);
+    Serial.println("Failed to find MPU6050 chip!");
+    while (1) delay(10);
+  }
+
+  mpu.setAccelerometerRange(MPU6050_RANGE_16_G);
+  mpu.setGyroRange(MPU6050_RANGE_250_DEG);
+  mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
+  Serial.println("MPU6050 ready.\n");
+  delay(100);
 }
+
+// -------------------------------------------------------------------
 
 void loop() {
-  if (radio.available()) {
-    radio.read(&dataRead, sizeof(dataRead));
-    
-    int joyX = dataRead[2];
-    int joyY = dataRead[3];
+  // --- AUTO MODE BUTTON (Local Trigger) ---
+  if (!digitalRead(AUTO_BUTTON_PIN) && !autoModeActive) {
+    autoModeActive = true;
+    autoStartTime = millis();
+    Serial.println("Auto mode activated!");
+  }
 
-    // map joystick to motor speed (-255 to 255)
-    int speedY = map(joyY, 0, 1023, -255, 255);
-    int turnX  = map(joyX, 0, 1023, -255, 255);
+  // --- AUTO MODE BEHAVIOR ---
+  if (autoModeActive) {
+    unsigned long elapsed = millis() - autoStartTime;
 
-    int leftMotorSpeed  = constrain(speedY + turnX, -255, 255);
-    int rightMotorSpeed = constrain(speedY - turnX, -255, 255);
+    // Move forward-left slightly
+    carRun(FORWARD, 180);   // drive forward
+    motorLeft(SPEED_LEVEL_4);   // slightly higher left motor
+    motorRight(SPEED_LEVEL_3);  // slightly slower right motor
 
-    driveMotor(leftMotorSpeed, rightMotorSpeed);
+    // Read gyro for info/debug
+    sensors_event_t a, g, temp; //acceleration, gyro, temp
+    mpu.getEvent(&a, &g, &temp);
+    Serial.print("Gyro Z: ");
+    Serial.println(g.gyro.z);
+
+    // End auto mode after duration
+    if (elapsed >= autoDuration) {
+      autoModeActive = false;
+      carStop();
+      Serial.println("Auto mode complete.");
+    }
+
+    delay(50);
+    return;  // Skip RF control while in auto mode
+  }
+
+  // --- NORMAL RF CONTROL MODE ---
+  if (getNrf24L01Data()) {
+    clearNrfFlag();
+    updateCarActionByNrfRemote();
+    lastNrfUpdateTime = millis();
+  }
+
+  // --- FAILSAFE ---
+  if (millis() - lastNrfUpdateTime > NRF_UPDATE_TIMEOUT) {
+    lastNrfUpdateTime = millis();
+    resetNrfDataBuf();
+    updateCarActionByNrfRemote();
+  }
+
+  // --- GIZMO SERVO (OPTIONAL EXAMPLE) ---
+  // You can drive it from RF signals or local logic
+  // Example: toggle with a button
+  static bool gizmoLeft = false;
+  if (remoteData.btnA == 1) {
+    gizmoLeft = !gizmoLeft;
+    GizmoServo.write(gizmoLeft ? 45 : 135);
   }
 }
 
-void driveMotor(int leftSpeed, int rightSpeed) {
-  // Left motor
-  if (leftSpeed > 0) {
-    digitalWrite(IN1, HIGH);
-    digitalWrite(IN2, LOW);
-  } else {
-    digitalWrite(IN1, LOW);
-    digitalWrite(IN2, HIGH);
-  }
-  analogWrite(ENA, abs(leftSpeed));
+// -------------------------------------------------------------------
 
-  // Right motor
-  if (rightSpeed > 0) {
-    digitalWrite(IN3, HIGH);
-    digitalWrite(IN4, LOW);
-  } else {
-    digitalWrite(IN3, LOW);
-    digitalWrite(IN4, HIGH);
-  }
-  analogWrite(ENB, abs(rightSpeed));
-}
+
